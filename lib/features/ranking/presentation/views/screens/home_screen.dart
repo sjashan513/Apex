@@ -43,7 +43,11 @@ class HomeScreen extends ConsumerWidget {
           ),
           SafeArea(
             child: rankingState.when(
-              loading: () => LoadingView(accentColor: accentColor),
+              loading: () => LoadingView(
+                  accentColor: accentColor,
+                  query: _lastQuery,
+                  onCancel: () =>
+                      ref.read(rankingNotifierProvider.notifier).reset()),
               error: (error, _) => ErrorFallbackView(
                 error: error,
                 onRetry: () => ref
