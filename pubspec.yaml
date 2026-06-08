@@ -47,6 +47,8 @@ flutter:
   assets:
     - .env
     - assets/fonts/
+    - assets/images/
+
 
   fonts:
     - family: Playfair Display
