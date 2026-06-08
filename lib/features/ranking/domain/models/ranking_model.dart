@@ -3,9 +3,12 @@
 /// Enforces the Zero-Degradation standard by requiring fallback styling
 /// properties on every item. Sealed hierarchies guarantee exhaustive
 /// switch handling at every consumer site.
+///
+/// Trip 1 models: RankingModel + RankingItem hierarchy (slim list payload)
+/// Trip 2 models: RankingItemDetail (unified, query-aware enrichment payload)
 library;
 
-// ── Ranking model hierarchy ────────────────────────────────────────────────
+// ── Ranking model hierarchy (Trip 1) ──────────────────────────────────────
 
 sealed class RankingModel {
   const RankingModel({
@@ -43,9 +46,9 @@ final class TechnicalRanking extends RankingModel {
   });
 }
 
-// ── Ranking item hierarchy ─────────────────────────────────────────────────
+// ── Ranking item hierarchy (Trip 1) ───────────────────────────────────────
 
-/// Base class for all ranking items.
+/// Base class for all ranking list items.
 /// Enforces the hybrid styling bundle required for image hallucination fallbacks.
 sealed class RankingItem {
   const RankingItem({
@@ -128,6 +131,56 @@ final class TechnicalItem extends RankingItem {
   final String vram;
   final String tdpWattage;
   final String price;
+}
+
+// ── Detail model (Trip 2) — unified, query-aware ───────────────────────────
+
+/// A single key-value specification entry.
+/// The model generates whatever label/value pairs are contextually relevant.
+/// A GPU gets VRAM and TDP. Python gets paradigm and typing discipline.
+/// A beach gets water temperature and wave conditions.
+/// No field names are hardcoded — the schema adapts to any query.
+final class SpecEntry {
+  const SpecEntry({required this.label, required this.value});
+  final String label;
+  final String value;
+}
+
+/// Unified enriched detail payload for any item, any archetype, any query.
+/// Returned by Trip 2. One class covers all archetypes — no sealed subclasses.
+/// The [specs] list is model-generated and contextually appropriate per item.
+final class RankingItemDetail {
+  const RankingItemDetail({
+    required this.title,
+    required this.overview,
+    required this.specs,
+    required this.highlights,
+    required this.pros,
+    required this.cons,
+    required this.bestFor,
+  });
+
+  /// The exact item name — matches Trip 1 title.
+  final String title;
+
+  /// 3–4 sentence deep dive. More expansive than Trip 1 description.
+  final String overview;
+
+  /// Contextually generated key-value pairs.
+  /// Rendered as a spec grid — label in eyebrow style, value in body.
+  final List<SpecEntry> specs;
+
+  /// 3–4 standout features or facts about this item.
+  final List<String> highlights;
+
+  /// Strengths of this item.
+  final List<String> pros;
+
+  /// Weaknesses or limitations.
+  final List<String> cons;
+
+  /// Who this item is best suited for, or in what context it excels.
+  final List<String> bestFor;
 }
 
 // ── Humor payload ──────────────────────────────────────────────────────────
