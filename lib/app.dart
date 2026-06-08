@@ -5,20 +5,18 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'core/routing/app_router.dart';
 import 'design_system/theme/app_colors.dart';
-import 'design_system/theme/app_typography.dart';
 
 class ApexApp extends StatelessWidget {
   const ApexApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Lock orientation to portrait — mobile-first product decision
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);
 
-    // Force dark status bar icons against our dark canvas
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -26,20 +24,11 @@ class ApexApp extends StatelessWidget {
       ),
     );
 
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Apex',
       debugShowCheckedModeBanner: false,
+      routerConfig: appRouter,
       theme: _buildTheme(),
-      // Temporary home — GoRouter replaces this in the next step
-      home: const Scaffold(
-        backgroundColor: AppColors.canvas,
-        body: Center(
-          child: Text(
-            'Apex',
-            style: AppTypography.heroTitle,
-          ),
-        ),
-      ),
     );
   }
 
