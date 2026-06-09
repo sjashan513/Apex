@@ -194,5 +194,14 @@ final class HumorPayload {
   });
 
   final String message;
-  final List<String> suggestions;
+  final List<SuggestedQuery> suggestions;
+}
+
+final class SuggestedQuery {
+  const SuggestedQuery({
+    required this.query,
+    required this.archetype,
+  });
+  final String query;
+  final String archetype; // 'MEDIA' | 'GEOGRAPHIC' | 'TECHNICAL'
 }

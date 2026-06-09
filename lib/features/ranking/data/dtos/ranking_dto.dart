@@ -81,7 +81,12 @@ abstract final class RankingDto {
     }
     return HumorPayload(
       message: message,
-      suggestions: rawSuggestions.cast<String>(),
+      suggestions: rawSuggestions
+          .map((suggestedQuery) => SuggestedQuery(
+                query: suggestedQuery['query'] as String,
+                archetype: suggestedQuery['archetype'] as String,
+              ))
+          .toList(),
     );
   }
 

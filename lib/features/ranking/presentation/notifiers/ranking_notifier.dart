@@ -104,11 +104,7 @@ class RankingNotifier extends AutoDisposeAsyncNotifier<RankingState> {
       // The API identified the query as off-topic — not a failure, a valid outcome
       final payload = HumorPayload(
         message: e.message,
-        suggestions: const [
-          'Top 10 sci-fi novels of all time',
-          'Top 10 specialty cafes in Tokyo',
-          'Top 10 GPUs for machine learning',
-        ],
+        suggestions: e.suggestions,
       );
       state = AsyncData(HumorState(payload: payload));
     } on DomainException catch (e, st) {

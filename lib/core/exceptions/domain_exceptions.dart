@@ -1,3 +1,5 @@
+import 'package:apex/features/ranking/domain/models/ranking_model.dart';
+
 /// Sealed error hierarchy for all domain-level failures in Apex.
 /// No raw exceptions escape beyond the repository layer — only these types.
 sealed class DomainException implements Exception {
@@ -30,5 +32,6 @@ final class QuotaException extends DomainException {
 
 /// The user submitted a nonsense or off-topic query — not a technical failure.
 final class NonsenseException extends DomainException {
-  const NonsenseException({required super.message});
+  const NonsenseException({required super.message, required this.suggestions});
+  final List<SuggestedQuery> suggestions;
 }

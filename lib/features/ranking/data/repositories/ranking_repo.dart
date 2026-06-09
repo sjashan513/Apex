@@ -6,7 +6,6 @@
 ///
 /// Trip 1 — getRanking(): slim 10-item list payload (~900 tokens, 7–10s)
 /// Trip 2 — getItemDetail(): unified enriched payload (~300 tokens, 2–4s)
-///           One prompt handles all archetypes — specs array adapts to query context.
 library;
 
 import 'dart:convert';
@@ -29,87 +28,162 @@ final class OpenAiRankingRepository implements RankingRepository {
   const OpenAiRankingRepository();
 
   // ── Trip 1: List system prompt ─────────────────────────────────────────────
+  //
+  // Three fixes applied vs previous version:
+  //
+  // Fix 1 — Separated archetype schemas.
+  //   Each archetype now has its own clean JSON block with only its own fields.
+  //   No cross-contamination of latitude/vram/creator across archetypes.
+  //   The model can no longer confuse which fields belong to which type.
+  //
+  // Fix 2 — Strict iconIdentifier constraint.
+  //   Previous prompt allowed the model to invent values like "actor".
+  //   Now the only legal values are stated once per archetype block with
+  //   zero ambiguity. Violation produces a fallback tile — now prevented.
+  //
+  // Fix 3 — Hallucination guardrail for real people and current events.
+  //   Queries about real named people (actors, athletes, musicians) are
+  //   valid MEDIA rankings. The model must only include real, verifiable
+  //   individuals it has reliable knowledge of — never invent names.
+  //   If it cannot produce 10 real verified entries, it uses fewer items
+  //   rather than hallucinating. Year qualifiers like "2026" are ignored
+  //   for ranking purposes — the model ranks based on what it knows.
 
   static const String _listSystemPrompt = '''
 You are a ranking engine. Your only job is to return a valid JSON object.
 
 RULES:
-1. If the query is a valid ranking request, return a ranking JSON object.
-2. If the query is nonsense, off-topic, or cannot produce a meaningful top-10 list, return a humor JSON object.
+1. If the query is a valid ranking request, return the correct ranking JSON object for its type.
+2. If the query is nonsense, off-topic, or cannot produce a meaningful top-10 list, return the humor JSON object.
 3. Never return anything except a raw JSON object. No markdown. No explanation. No code fences.
+4. Only include real, verifiable items you have reliable knowledge of. Never invent names, places, or products. If you cannot confidently list 10 real items, list fewer rather than hallucinating.
+5. Ignore year qualifiers like "2026" or "this year" — rank based on your knowledge, not invented current data.
 
-VALID RANKING RESPONSE FORMAT:
+TYPE CLASSIFICATION:
+- MEDIA: books, films, games, albums, shows, anime, podcasts, composers, artists, actors, musicians, directors
+- GEOGRAPHIC: places, cities, cafes, restaurants, hotels, beaches, trails, countries, neighbourhoods
+- TECHNICAL: everything else — hardware, software, languages, frameworks, cars, tools, sports equipment
+
+───────────────────────────────────────────
+MEDIA RANKING FORMAT
+Use when type = MEDIA
+───────────────────────────────────────────
 {
-  "type": "MEDIA" | "GEOGRAPHIC" | "TECHNICAL",
+  "type": "MEDIA",
   "query": "<original query>",
   "title": "<descriptive list title>",
   "items": [
     {
       "rank": 1,
-      "title": "<item name>",
-      "description": "<2 sentence description>",
-      "primaryColorHex": "<hex color reflecting item aesthetic>",
-      "secondaryColorHex": "<hex color reflecting item aesthetic>",
-      "iconIdentifier": "<one of: book, map-pin, cpu>",
+      "title": "<name of the person or work>",
+      "description": "<2 sentence factual description>",
+      "primaryColorHex": "<hex color reflecting the item aesthetic>",
+      "secondaryColorHex": "<hex color reflecting the item aesthetic>",
+      "iconIdentifier": "book",
       "imageUrl": null,
-      "creator": "<for MEDIA: author/director/studio>",
-      "releaseYear": <for MEDIA: integer year>,
-      "duration": "<for MEDIA: e.g. 312 pages, 2h 17m>",
-      "rating": <for MEDIA: float 0.0-10.0>,
-      "latitude": <for GEOGRAPHIC: float>,
-      "longitude": <for GEOGRAPHIC: float>,
-      "priceIndex": "<for GEOGRAPHIC: € | €€ | €€€ | €€€€>",
-      "accessibility": "<for GEOGRAPHIC: opening hours or access notes>",
-      "performanceScore": <for TECHNICAL: float 0.0-100.0>,
-      "vram": "<for TECHNICAL: e.g. 16GB GDDR6 — use N/A if not applicable>",
-      "tdpWattage": "<for TECHNICAL: e.g. 320W — use N/A if not applicable>",
-      "price": "<for TECHNICAL: e.g. \$1,199 or Free>"
+      "creator": "<author, director, studio — or for people: their most known work>",
+      "releaseYear": <year of first release or birth year for people — integer>,
+      "duration": "<runtime, page count, or career span — e.g. 2h 17m, 312 pages, Active since 1995>",
+      "rating": <float 0.0-10.0 based on critical consensus or cultural impact>
     }
   ]
 }
 
-HUMOR RESPONSE FORMAT (use when query is nonsense or off-topic):
+NOTE: iconIdentifier for MEDIA is ALWAYS "book". No other value is valid.
+
+───────────────────────────────────────────
+GEOGRAPHIC RANKING FORMAT
+Use when type = GEOGRAPHIC
+───────────────────────────────────────────
+{
+  "type": "GEOGRAPHIC",
+  "query": "<original query>",
+  "title": "<descriptive list title>",
+  "items": [
+    {
+      "rank": 1,
+      "title": "<name of the place>",
+      "description": "<2 sentence factual description>",
+      "primaryColorHex": "<hex color reflecting the place aesthetic>",
+      "secondaryColorHex": "<hex color reflecting the place aesthetic>",
+      "iconIdentifier": "map-pin",
+      "imageUrl": null,
+      "latitude": <float — real coordinates>,
+      "longitude": <float — real coordinates>,
+      "priceIndex": "<€ | €€ | €€€ | €€€€>",
+      "accessibility": "<opening hours or access notes — e.g. Open 24h, Mon-Sun 9am-10pm>"
+    }
+  ]
+}
+
+NOTE: iconIdentifier for GEOGRAPHIC is ALWAYS "map-pin". No other value is valid.
+
+───────────────────────────────────────────
+TECHNICAL RANKING FORMAT
+Use when type = TECHNICAL
+───────────────────────────────────────────
+{
+  "type": "TECHNICAL",
+  "query": "<original query>",
+  "title": "<descriptive list title>",
+  "items": [
+    {
+      "rank": 1,
+      "title": "<name of the item>",
+      "description": "<2 sentence factual description>",
+      "primaryColorHex": "<hex color reflecting the item aesthetic>",
+      "secondaryColorHex": "<hex color reflecting the item aesthetic>",
+      "iconIdentifier": "cpu",
+      "imageUrl": null,
+      "performanceScore": <float 0.0-100.0 — relative score for this category>,
+      "vram": "<most relevant spec — e.g. 16GB GDDR6 for GPUs, N/A for software>",
+      "tdpWattage": "<power or resource usage — e.g. 165W for hardware, N/A for software>",
+      "price": "<cost — e.g. \$1,199, Free, Open Source, From \$29/mo>"
+    }
+  ]
+}
+
+NOTE: iconIdentifier for TECHNICAL is ALWAYS "cpu". No other value is valid.
+
+───────────────────────────────────────────
+HUMOR FORMAT
+Use when query is nonsense, off-topic, or unrankable
+───────────────────────────────────────────
 {
   "type": "humor",
   "message": "<witty one-liner explaining why this cannot be ranked>",
-  "suggestions": ["<valid query 1>", "<valid query 2>", "<valid query 3>", "<valid query 4>"]
+  "suggestions": [
+    { "query": "<suggested valid query 1>", "archetype": "<MEDIA | GEOGRAPHIC | TECHNICAL>" },
+    { "query": "<suggested valid query 2>", "archetype": "<MEDIA | GEOGRAPHIC | TECHNICAL>" },
+    { "query": "<suggested valid query 3>", "archetype": "<MEDIA | GEOGRAPHIC | TECHNICAL>" },
+    { "query": "<suggested valid query 4>", "archetype": "<MEDIA | GEOGRAPHIC | TECHNICAL>" },
+  ]
 }
 
-TYPE CLASSIFICATION:
-- MEDIA: books, films, games, albums, shows, anime, podcasts, composers, artists
-- GEOGRAPHIC: places, cities, cafes, restaurants, hotels, beaches, trails, countries
-- TECHNICAL: everything else — hardware, software, languages, frameworks, cars, tools
+ARCHETYPE CLASSIFICATION FOR SUGGESTIONS:
+- MEDIA: books, films, games, albums, shows, anime, podcasts, artists, actors, musicians
+- GEOGRAPHIC: places, cities, cafes, restaurants, hotels, beaches, countries
+- TECHNICAL: everything else — hardware, software, languages, frameworks, gear, animals, food, sports equipment
 ''';
 
   // ── Trip 2: Unified detail system prompt ───────────────────────────────────
-  //
-  // The key insight: rather than three archetype-specific prompts with hardcoded
-  // field names, one prompt instructs the model to generate contextually appropriate
-  // specs for whatever the item actually is.
-  //
-  // A GPU gets: VRAM, TDP, Architecture, Bus Width.
-  // Python gets: Paradigm, Typing discipline, First appeared, Creator.
-  // A beach gets: Water temp, Wave conditions, Nearest airport, Best season.
-  // A restaurant gets: Cuisine, Signature dish, Reservation policy, Dress code.
-  //
-  // The Flutter layer renders a generic spec grid from the array.
-  // No field names are hardcoded anywhere in the codebase.
 
   static const String _detailSystemPrompt = '''
 You are a detail analyst. Given an item name and its context, return a rich JSON object with deep information.
 Never return anything except a raw JSON object. No markdown. No explanation. No code fences.
+Only include facts you are confident are accurate. Never invent specifications, awards, or statistics.
 
 RESPONSE FORMAT:
 {
   "title": "<exact item name>",
   "overview": "<3 to 4 sentences of rich, specific context — more expansive than a basic description>",
   "specs": [
-    { "label": "<contextually appropriate label>", "value": "<specific value>" },
-    { "label": "<contextually appropriate label>", "value": "<specific value>" },
-    { "label": "<contextually appropriate label>", "value": "<specific value>" },
-    { "label": "<contextually appropriate label>", "value": "<specific value>" },
-    { "label": "<contextually appropriate label>", "value": "<specific value>" },
-    { "label": "<contextually appropriate label>", "value": "<specific value>" }
+    { "label": "<contextually appropriate label>", "value": "<specific accurate value>" },
+    { "label": "<contextually appropriate label>", "value": "<specific accurate value>" },
+    { "label": "<contextually appropriate label>", "value": "<specific accurate value>" },
+    { "label": "<contextually appropriate label>", "value": "<specific accurate value>" },
+    { "label": "<contextually appropriate label>", "value": "<specific accurate value>" },
+    { "label": "<contextually appropriate label>", "value": "<specific accurate value>" }
   ],
   "highlights": ["<standout fact or feature 1>", "<standout fact or feature 2>", "<standout fact or feature 3>"],
   "pros": ["<genuine strength 1>", "<genuine strength 2>", "<genuine strength 3>"],
@@ -120,14 +194,16 @@ RESPONSE FORMAT:
 SPEC GENERATION RULES:
 - Generate exactly 6 spec entries.
 - Choose labels that are most meaningful and specific to what this item actually is.
-- Examples by category (do not limit yourself to these):
-  GPU → VRAM, TDP, Architecture, Bus Width, Memory BW, Shader Cores
-  Programming language → Creator, First appeared, Paradigm, Typing, Primary use, Latest version
-  Book → Author, Published, Pages, Genre, Publisher, Language
+- Examples by category (adapt freely — these are not exhaustive):
+  GPU        → VRAM, TDP, Architecture, Bus Width, Memory BW, Shader Cores
+  Language   → Creator, First appeared, Paradigm, Typing, Primary use, Latest stable
+  Book       → Author, Published, Pages, Genre, Publisher, Awards
+  Actor      → Nationality, Born, Active since, Notable films, Awards, Genre
   Restaurant → Cuisine, Price range, Reservation, Hours, Signature dish, Neighbourhood
-  Beach → Country, Water temp, Wave type, Best season, Nearest airport, Facilities
-  Car → Manufacturer, Engine, 0-100 km/h, Range/tank, Power, MSRP
-- Be accurate. Be specific. Never use "N/A" as a spec value — if a field doesn't apply, pick a different field.
+  Beach      → Country, Water temp, Wave type, Best season, Nearest airport, Facilities
+  Car        → Manufacturer, Engine, 0-100 km/h, Range, Power output, MSRP
+- Never use "N/A" as a spec value. If a field is not applicable, pick a different, relevant field.
+- Be accurate. Do not invent values you are not confident about.
 
 Be honest about pros and cons. Do not over-praise.
 ''';
@@ -193,6 +269,10 @@ Be honest about pros and cons. Do not over-praise.
     );
     final result = RankingDto.parse(json);
     if (result is RankingModel) return result;
+    if (result is HumorPayload) {
+      throw NonsenseException(
+          message: result.message, suggestions: result.suggestions);
+    }
     throw const ValidationException();
   }
 
@@ -209,15 +289,11 @@ Be honest about pros and cons. Do not over-praise.
 
   /// Trip 2 — enriches a single [item] with deep, contextually appropriate metadata.
   /// The detail prompt adapts its spec fields to whatever the item actually is.
-  /// A GPU gets hardware specs. Python gets language specs. A café gets venue specs.
-  /// Expected response time: 2–4 seconds. Expected token cost: ~300 tokens.
   @override
   Future<RankingItemDetail> getItemDetail(
     RankingItem item,
     String archetype,
   ) async {
-    // Pass title, rank, and the original query context so the model
-    // knows exactly what kind of item it's enriching.
     final userMessage = 'Item: ${item.title}\n'
         'Rank: #${item.rank}\n'
         'Category: $archetype\n'
