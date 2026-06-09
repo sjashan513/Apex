@@ -24,4 +24,19 @@ class Env {
     }
     return key;
   }
+
+  /// The OpenAI model string. Throws [StateError] if not found in .env.
+  /// Swap the value in .env to change models without touching Dart code.
+  ///
+  /// Example: OPENAI_MODEL=gpt-4.1-nano
+  static String get openAiModel {
+    final model = dotenv.env['OPENAI_MODEL'];
+    if (model == null || model.isEmpty) {
+      throw StateError(
+        'OPENAI_MODEL is missing from .env. '
+        'Add it to the project root .env file before running.',
+      );
+    }
+    return model;
+  }
 }
