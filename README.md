@@ -164,12 +164,14 @@ flutter pub get
 OPENAI_API_KEY=sk-your-key-here
 OPENAI_MODEL=gpt-4.1-nano
 
-# 3. Run on device
+# 3. Run on a connected Android device (recommended)
 flutter run
 
-# 4. Run on Chrome for UI iteration
+# 4. Run on Chrome for rapid UI iteration
 flutter run -d chrome
 ```
+
+> **Platform note:** Apex is built and tested for Android. iOS is not currently supported. For the best experience, run on a physical Android device or an Android emulator.
 
 The model string is read at runtime from `.env` via `Env.openAiModel`. Swapping models requires no Dart changes.
 
