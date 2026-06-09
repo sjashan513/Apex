@@ -20,9 +20,9 @@ class ApiClient {
     final dio = Dio(
       BaseOptions(
         baseUrl: 'https://api.openai.com/v1/',
-        connectTimeout: const Duration(seconds: 25),
-        receiveTimeout: const Duration(seconds: 25),
-        sendTimeout: const Duration(seconds: 25),
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 30),
         headers: {
           'Authorization': 'Bearer ${Env.openAiKey}',
           'Content-Type': 'application/json',

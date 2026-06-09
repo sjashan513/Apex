@@ -141,9 +141,8 @@ class _GradientTile extends StatelessWidget {
       child: Center(
         child: Icon(
           _archetypeIcon(archetype),
-          // ghost icon — white at 20% opacity per Design Contract §07
           color: AppColors.tileIconGhost,
-          size: 24, // Design Contract §07
+          size: 24,
         ),
       ),
     );

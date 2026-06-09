@@ -72,8 +72,6 @@ String _detectArchetype(String query) {
   return 'TECHNICAL';
 }
 
-// ── Notifier ───────────────────────────────────────────────────────────────
-
 class RankingNotifier extends AutoDisposeAsyncNotifier<RankingState> {
   /// Called once when the notifier is first created.
   /// Returns the initial idle state — no API call happens here.
@@ -88,30 +86,24 @@ class RankingNotifier extends AutoDisposeAsyncNotifier<RankingState> {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return;
 
-    // Step 1 — detect archetype client-side and update the accent color provider
     final archetype = _detectArchetype(trimmed);
     ref.read(detectedArchetypeProvider.notifier).state = archetype;
 
-    // Step 2 — set loading state, UI transitions to ExecutingQuery immediately
     state = const AsyncLoading();
 
-    // Step 3 — call the repository and handle all outcomes
     try {
       final repository = ref.read(rankingRepositoryProvider);
       final result = await repository.getRanking(trimmed);
       state = AsyncData(RankingResultState(model: result));
     } on NonsenseException catch (e) {
-      // The API identified the query as off-topic — not a failure, a valid outcome
       final payload = HumorPayload(
         message: e.message,
         suggestions: e.suggestions,
       );
       state = AsyncData(HumorState(payload: payload));
     } on DomainException catch (e, st) {
-      // Timeout, validation failure, or quota error — genuine failure
       state = AsyncError(e, st);
     } catch (e, st) {
-      // Unexpected error — wrap defensively
       state = AsyncError(
         const ValidationException(),
         st,

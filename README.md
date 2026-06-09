@@ -89,43 +89,67 @@ Dark-first zinc palette. Two font weights. Three archetype accents. Particles on
 ```
 lib/
 ├── core/
-│   ├── env/env.dart                    — .env loader, openAiKey + openAiModel getters
-│   ├── network/api_client.dart         — Dio singleton, 18s timeout
-│   ├── exceptions/domain_exceptions.dart — Sealed: Timeout · Validation · Quota · Nonsense
-│   └── routing/app_router.dart         — GoRouter, 3 named routes
+│   ├── env/
+│   │   └── env.dart                       — .env loader, openAiKey + openAiModel getters
+│   ├── network/
+│   │   └── api_client.dart                — Dio singleton, 18-second timeout
+│   ├── exceptions/
+│   │   └── domain_exceptions.dart         — Sealed: Timeout · Validation · Quota · Nonsense
+│   └── routing/
+│       └── app_router.dart                — GoRouter, 3 named routes
+│
 ├── design_system/
-│   ├── theme/                          — app_colors.dart · app_typography.dart
-│   └── components/                     — ParticleCanvas · HybridFallbackTile · MicroStateText
-│                                         ShellLogoMark · EyebrowDivider · SectionLabel
-│                                         SearchInput · SuggestionChip
-└── features/ranking/
-    ├── data/
-    │   ├── dtos/ranking_dto.dart        — JSON → domain model parser + schema validator
-    │   └── repositories/
-    │       ├── ranking_repo.dart        — RankingRepository interface + OpenAI implementation
-    │       └── ranking_prompts.dart     — kListSystemPrompt · kDetailSystemPrompt (read-only constants)
-    ├── domain/
-    │   ├── models/ranking_model.dart   — Sealed: MediaRanking · GeographicRanking · TechnicalRanking
-    │   └── providers/
-    │       ├── ranking_providers.dart  — repositoryProvider · notifierProvider · archetypeProvider
-    │       └── item_detail_provider.dart — FutureProvider.autoDispose.family for Trip 2
-    └── presentation/
-        ├── notifiers/ranking_notifier.dart — AutoDisposeAsyncNotifier, full state machine
-        └── views/
-            ├── screens/
-            │   ├── home_screen.dart         — State 1 coordinator
-            │   ├── ranking_dashboard.dart   — State 3 coordinator
-            │   └── item_detail_screen.dart  — State 4 coordinator (~120 lines)
-            └── widgets/
-                ├── idle_view.dart · loading_view.dart
-                ├── humor_fallback_view.dart · error_fallback_view.dart
-                ├── animated_card.dart
-                ├── technical_layout_card.dart · media_layout_card.dart · geographic_layout_card.dart
-                └── detail/
-                    ├── detail_hero_banner.dart
-                    ├── detail_title_row.dart
-                    ├── detail_content.dart
-                    └── detail_loading_error.dart
+│   ├── theme/
+│   │   ├── app_colors.dart
+│   │   └── app_typography.dart
+│   └── components/
+│       ├── particle_canvas.dart
+│       ├── hybrid_fallback_tile.dart
+│       ├── micro_state_text.dart
+│       ├── shell_logo_mark.dart
+│       ├── eyebrow_divider.dart
+│       ├── section_label.dart
+│       ├── search_input.dart
+│       └── suggestion_chip.dart
+│
+└── features/
+    └── ranking/
+        ├── data/
+        │   ├── dtos/
+        │   │   └── ranking_dto.dart        — JSON → domain model parser + schema validator
+        │   └── repositories/
+        │       ├── ranking_repo.dart        — RankingRepository interface + OpenAI implementation
+        │       └── ranking_prompts.dart     — kListSystemPrompt · kDetailSystemPrompt (read-only)
+        │
+        ├── domain/
+        │   ├── models/
+        │   │   └── ranking_model.dart      — Sealed: MediaRanking · GeographicRanking · TechnicalRanking
+        │   └── providers/
+        │       ├── ranking_providers.dart  — repositoryProvider · notifierProvider · archetypeProvider
+        │       └── item_detail_provider.dart — FutureProvider.autoDispose.family for Trip 2
+        │
+        └── presentation/
+            ├── notifiers/
+            │   └── ranking_notifier.dart   — AutoDisposeAsyncNotifier, full state machine
+            └── views/
+                ├── screens/
+                │   ├── home_screen.dart         — State 1 coordinator
+                │   ├── ranking_dashboard.dart   — State 3 coordinator
+                │   └── item_detail_screen.dart  — State 4 coordinator
+                └── widgets/
+                    ├── idle_view.dart
+                    ├── loading_view.dart
+                    ├── humor_fallback_view.dart
+                    ├── error_fallback_view.dart
+                    ├── animated_card.dart
+                    ├── technical_layout_card.dart
+                    ├── media_layout_card.dart
+                    ├── geographic_layout_card.dart
+                    └── detail/
+                        ├── detail_hero_banner.dart
+                        ├── detail_title_row.dart
+                        ├── detail_content.dart
+                        └── detail_loading_error.dart
 ```
 
 ---

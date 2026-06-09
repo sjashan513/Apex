@@ -9,6 +9,8 @@ import '../../../../../design_system/components/search_input.dart';
 import '../../../../../design_system/theme/app_colors.dart';
 import '../../../../../design_system/theme/app_typography.dart';
 import '../../notifiers/ranking_notifier.dart';
+import '../../../../../design_system/components/shell_logo_mark.dart';
+import '../../../../../design_system/components/eyebrow_divider.dart';
 
 // ── Static archetype chip data ─────────────────────────────────────────────
 
@@ -41,7 +43,7 @@ class HumorFallbackView extends StatelessWidget {
                 const SizedBox(height: 18),
 
                 // Logo — top left
-                _LogoMark(),
+                const ShellLogoMark(),
 
                 const Spacer(),
 
@@ -50,7 +52,7 @@ class HumorFallbackView extends StatelessWidget {
                   child: Column(
                     children: [
                       // Eyebrow with divider lines
-                      const _EyebrowDivider(
+                      const EyebrowDivider(
                         label: 'not a ranking question',
                       ),
 
@@ -89,7 +91,6 @@ class HumorFallbackView extends StatelessWidget {
           ),
         ),
 
-        // ── Bottom section — archetype chips ─────────────────────────────
         // ── Bottom section — dynamic API suggestions ──────────────────────────────
         Container(
           decoration: BoxDecoration(
@@ -126,8 +127,6 @@ class HumorFallbackView extends StatelessWidget {
     );
   }
 }
-
-// ── Archetype chip ─────────────────────────────────────────────────────────
 
 // ── Dynamic suggestion chip ────────────────────────────────────────────────
 
@@ -181,77 +180,6 @@ class _SuggestionChip extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-// ── Logo mark ──────────────────────────────────────────────────────────────
-
-class _LogoMark extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 0.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accentGlobal.withValues(alpha: 0.05),
-            blurRadius: 12,
-            spreadRadius: 4,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Image.asset(
-          'assets/images/logo.png',
-          width: 44,
-          height: 44,
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
-  }
-}
-
-// ── Eyebrow with divider lines ─────────────────────────────────────────────
-
-class _EyebrowDivider extends StatelessWidget {
-  const _EyebrowDivider({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 0.5,
-            color: Colors.white.withValues(alpha: 0.06),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text(
-            label.toUpperCase(),
-            style: AppTypography.eyebrow.copyWith(
-              color: AppColors.border,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Container(
-            height: 0.5,
-            color: Colors.white.withValues(alpha: 0.06),
-          ),
-        ),
-      ],
     );
   }
 }

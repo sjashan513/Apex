@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../../../../design_system/components/search_input.dart';
 import '../../../../../design_system/theme/app_colors.dart';
 import '../../../../../design_system/theme/app_typography.dart';
+import '../../../../../design_system/components/shell_logo_mark.dart';
 
 // ── Suggestion data ────────────────────────────────────────────────────────
 
@@ -86,11 +87,13 @@ class IdleView extends StatelessWidget {
           const SizedBox(height: 18),
 
           // ── Logo + app name — top left ────────────────────────────
-          Row(
+          const Row(
             children: [
-              _LogoMark(),
-              const SizedBox(width: 10),
-              const Text(
+              ShellLogoMark(
+                size: LogoMarkSize.small,
+              ),
+              SizedBox(width: 10),
+              Text(
                 'Apex',
                 style: TextStyle(
                   fontFamily: 'Inter',

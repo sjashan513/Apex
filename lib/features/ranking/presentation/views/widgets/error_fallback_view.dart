@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../../../../../core/exceptions/domain_exceptions.dart';
 import '../../../../../design_system/theme/app_colors.dart';
 import '../../../../../design_system/theme/app_typography.dart';
+import '../../../../../design_system/components/eyebrow_divider.dart';
 
 // ── Error type definitions ─────────────────────────────────────────────────
 
@@ -71,11 +72,11 @@ _ErrorContent _contentForError(Object error) {
     eyebrow: 'connection lost',
     title: 'The ranking engine\nis unreachable.',
     subtitle:
-        'Connection timed out after 18 seconds.\nCheck your network and try again.',
+        'Connection timed out after 30 seconds.\nCheck your network and try again.',
     icon: Icons.wifi_off_rounded,
     primaryDetail: 'Request timed out',
     primaryDetailDesc:
-        'The OpenAI API did not respond within the 18-second window. The connection was automatically aborted.',
+        'The OpenAI API did not respond within the 30-second window. The connection was automatically aborted.',
     secondaryDetail: 'Possible causes',
     secondaryDetailDesc:
         'Slow network, high API load, or an unstable connection. No data was lost.',
@@ -107,9 +108,6 @@ class ErrorFallbackView extends StatelessWidget {
         children: [
           const SizedBox(height: 24),
 
-          // Logo mark
-          _LogoMark(),
-
           const SizedBox(height: 32),
 
           // Error icon with red glow
@@ -118,7 +116,7 @@ class ErrorFallbackView extends StatelessWidget {
           const SizedBox(height: 20),
 
           // Eyebrow with divider lines
-          _EyebrowDivider(label: content.eyebrow),
+          EyebrowDivider(label: content.eyebrow),
 
           const SizedBox(height: 14),
 
@@ -230,42 +228,6 @@ class ErrorFallbackView extends StatelessWidget {
   }
 }
 
-// ── Logo mark ──────────────────────────────────────────────────────────────
-
-class _LogoMark extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 0.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accentGlobal.withValues(alpha: 0.05),
-            blurRadius: 12,
-            spreadRadius: 4,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Image.asset(
-          'assets/images/logo.png',
-          width: 44,
-          height: 44,
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
-  }
-}
-
 // ── Error icon badge ───────────────────────────────────────────────────────
 
 class _ErrorIconBadge extends StatelessWidget {
@@ -297,42 +259,6 @@ class _ErrorIconBadge extends StatelessWidget {
         color: AppColors.error.withValues(alpha: 0.8),
         size: 32,
       ),
-    );
-  }
-}
-
-// ── Eyebrow with divider lines ─────────────────────────────────────────────
-
-class _EyebrowDivider extends StatelessWidget {
-  const _EyebrowDivider({required this.label});
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 0.5,
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text(
-            label.toUpperCase(),
-            style: AppTypography.eyebrow.copyWith(
-              color: AppColors.border,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Container(
-            height: 0.5,
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -53,7 +53,7 @@ const List<_MicroState> _microStates = [
 ];
 
 const List<int> _stateTimings = [0, 1500, 3000, 9000];
-const int _totalSeconds = 25;
+const int _totalSeconds = 30;
 
 // ── Arc painter ────────────────────────────────────────────────────────────
 
