@@ -1,8 +1,10 @@
 /// Architectural role: State 2 — ExecutingQuery UI.
 /// Renders the full loading progression: query pill, arc ring,
 /// micro-state copy, step indicators, timeout bar, and cancel action.
+/// Timeout bar driven by AnimationController at vsync frequency — no jumps.
 library;
 
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../../design_system/theme/app_colors.dart';
@@ -50,10 +52,7 @@ const List<_MicroState> _microStates = [
   ),
 ];
 
-// Timing for each micro-state in milliseconds
 const List<int> _stateTimings = [0, 1500, 3000, 9000];
-
-// Total timeout in seconds — Design Contract §— Stage 2
 const int _totalSeconds = 18;
 
 // ── Arc painter ────────────────────────────────────────────────────────────
@@ -64,7 +63,7 @@ class _ArcPainter extends CustomPainter {
     required this.accentColor,
   });
 
-  final double progress; // 0.0 to 1.0
+  final double progress;
   final Color accentColor;
 
   @override
@@ -72,14 +71,12 @@ class _ArcPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 4;
 
-    // Track
     final trackPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4
       ..color = Colors.white.withValues(alpha: 0.06);
     canvas.drawCircle(center, radius, trackPaint);
 
-    // Progress arc
     if (progress > 0) {
       final arcPaint = Paint()
         ..style = PaintingStyle.stroke
@@ -119,28 +116,33 @@ class LoadingView extends StatefulWidget {
   State<LoadingView> createState() => _LoadingViewState();
 }
 
-class _LoadingViewState extends State<LoadingView> {
+class _LoadingViewState extends State<LoadingView>
+    with TickerProviderStateMixin {
   int _currentStateIndex = 0;
   double _elapsedSeconds = 0;
   late final Stopwatch _stopwatch;
-  late final Stream<int> _ticker;
+  late final AnimationController _timeoutController;
+  StreamSubscription<int>? _tickerSub;
 
   @override
   void initState() {
     super.initState();
     _stopwatch = Stopwatch()..start();
 
-    // Tick every 100ms for smooth timeout bar
-    _ticker = Stream.periodic(
+    // Drives the timeout bar — linear over 18 seconds, vsync-accurate
+    _timeoutController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: _totalSeconds),
+    )..forward();
+
+    // Drives micro-state text and step dots — 100ms is fine for text updates
+    _tickerSub = Stream.periodic(
       const Duration(milliseconds: 100),
       (tick) => tick,
-    );
-
-    _ticker.listen((_) {
+    ).listen((_) {
       if (!mounted) return;
       final elapsed = _stopwatch.elapsedMilliseconds;
 
-      // Advance micro-state
       int targetState = 0;
       for (int i = 0; i < _stateTimings.length; i++) {
         if (elapsed >= _stateTimings[i]) targetState = i;
@@ -148,254 +150,272 @@ class _LoadingViewState extends State<LoadingView> {
 
       setState(() {
         _currentStateIndex = targetState;
-        _elapsedSeconds = math.min(elapsed / 1000, _totalSeconds.toDouble());
+        _elapsedSeconds = math.min(
+          elapsed / 1000,
+          _totalSeconds.toDouble(),
+        );
       });
     });
   }
 
   @override
   void dispose() {
+    _tickerSub?.cancel();
     _stopwatch.stop();
+    _timeoutController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = _microStates[_currentStateIndex];
-    final timeoutProgress = _elapsedSeconds / _totalSeconds;
     final arcProgress = state.arcPercent / 100;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Query pill
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.1),
-                width: 0.5,
-              ),
-            ),
-            child: Text.rich(
-              TextSpan(
-                text: 'Ranking: ',
-                style: AppTypography.body.copyWith(
-                  color: AppColors.textGhost,
-                ),
-                children: [
-                  TextSpan(
-                    text: widget.query,
-                    style: AppTypography.body.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 48),
 
-          const SizedBox(height: 48),
-
-          // Arc progress ring
-          SizedBox(
-            width: 120,
-            height: 120,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CustomPaint(
-                  size: const Size(120, 120),
-                  painter: _ArcPainter(
-                    progress: arcProgress,
-                    accentColor: widget.accentColor,
-                  ),
+            // Query pill
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.surface.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  width: 0.5,
                 ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
+              ),
+              child: Text.rich(
+                TextSpan(
+                  text: 'Ranking: ',
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.textGhost,
+                  ),
                   children: [
-                    Icon(
-                      Icons.memory_rounded,
-                      color: widget.accentColor,
-                      size: 24,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${state.arcPercent.toInt()}%',
-                      style: AppTypography.cardTitle.copyWith(
+                    TextSpan(
+                      text: widget.query,
+                      style: AppTypography.body.copyWith(
                         color: AppColors.textPrimary,
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 36),
-
-          // Micro-state label
-          Text(
-            state.label.toUpperCase(),
-            style: AppTypography.eyebrow.copyWith(
-              color: widget.accentColor,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          // Micro-state message
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: Text(
-              state.message,
-              key: ValueKey(state.message),
-              style: AppTypography.screenTitle.copyWith(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Sub-message
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: Text(
-              state.sub,
-              key: ValueKey(state.sub),
-              style: AppTypography.body.copyWith(
-                color: AppColors.textGhost,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
             ),
-          ),
 
-          const SizedBox(height: 40),
+            const SizedBox(height: 48),
 
-          // Step dots
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(_microStates.length * 2 - 1, (i) {
-              if (i.isOdd) {
-                // Connector line
-                final lineIndex = i ~/ 2;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: 32,
-                  height: 1,
-                  color: lineIndex < _currentStateIndex
-                      ? widget.accentColor
-                      : AppColors.surfaceRaised,
-                );
-              }
-              // Dot
-              final dotIndex = i ~/ 2;
-              final isDone = dotIndex < _currentStateIndex;
-              final isActive = dotIndex == _currentStateIndex;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isDone || isActive
-                      ? widget.accentColor
-                      : AppColors.surfaceRaised,
-                  boxShadow: isActive
-                      ? [
-                          BoxShadow(
-                            color: widget.accentColor.withValues(alpha: 0.3),
-                            blurRadius: 6,
-                            spreadRadius: 2,
-                          ),
-                        ]
-                      : null,
-                ),
-              );
-            }),
-          ),
-
-          const SizedBox(height: 48),
-
-          // Timeout bar
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: Stack(
-                  children: [
-                    Container(
-                      height: 3,
-                      color: AppColors.surface,
+            // Arc progress ring
+            SizedBox(
+              width: 120,
+              height: 120,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CustomPaint(
+                    size: const Size(120, 120),
+                    painter: _ArcPainter(
+                      progress: arcProgress,
+                      accentColor: widget.accentColor,
                     ),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 100),
-                      height: 3,
-                      width: MediaQuery.of(context).size.width *
-                          timeoutProgress *
-                          0.8,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            widget.accentColor,
-                            AppColors.error,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(4),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.memory_rounded,
+                        color: widget.accentColor,
+                        size: 24,
                       ),
-                    ),
-                  ],
-                ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${state.arcPercent.toInt()}%',
+                        style: AppTypography.cardTitle.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                '${_elapsedSeconds.toStringAsFixed(0)}s / ${_totalSeconds}s',
-                style: AppTypography.eyebrow.copyWith(
-                  color: AppColors.border,
-                  fontSize: 9,
-                ),
-              ),
-            ],
-          ),
+            ),
 
-          const SizedBox(height: 28),
+            const SizedBox(height: 36),
 
-          // Cancel button
-          GestureDetector(
-            onTap: widget.onCancel,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 28,
-                vertical: 12,
+            // Micro-state label
+            Text(
+              state.label.toUpperCase(),
+              style: AppTypography.eyebrow.copyWith(
+                color: widget.accentColor,
               ),
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.border.withValues(alpha: 0.5),
-                  width: 0.5,
-                ),
-              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // Micro-state message
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
               child: Text(
-                'Cancel query',
+                state.message,
+                key: ValueKey(state.message),
+                style: AppTypography.screenTitle.copyWith(fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Sub-message
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Text(
+                state.sub,
+                key: ValueKey(state.sub),
                 style: AppTypography.body.copyWith(
                   color: AppColors.textGhost,
                 ),
+                textAlign: TextAlign.center,
               ),
             ),
-          ),
-        ],
+
+            const SizedBox(height: 40),
+
+            // Step dots
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(
+                _microStates.length * 2 - 1,
+                (i) {
+                  if (i.isOdd) {
+                    final lineIndex = i ~/ 2;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: 32,
+                      height: 1,
+                      color: lineIndex < _currentStateIndex
+                          ? widget.accentColor
+                          : AppColors.surfaceRaised,
+                    );
+                  }
+                  final dotIndex = i ~/ 2;
+                  final isDone = dotIndex < _currentStateIndex;
+                  final isActive = dotIndex == _currentStateIndex;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDone || isActive
+                          ? widget.accentColor
+                          : AppColors.surfaceRaised,
+                      boxShadow: isActive
+                          ? [
+                              BoxShadow(
+                                color:
+                                    widget.accentColor.withValues(alpha: 0.3),
+                                blurRadius: 6,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : null,
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 48),
+
+            // Timeout bar — AnimatedBuilder at vsync frequency, zero jumps
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Stack(
+                    children: [
+                      // Track
+                      Container(
+                        height: 3,
+                        color: AppColors.surface,
+                      ),
+                      // Bar — driven directly by AnimationController
+                      AnimatedBuilder(
+                        animation: _timeoutController,
+                        builder: (context, _) {
+                          return FractionallySizedBox(
+                            widthFactor: _timeoutController.value,
+                            child: Container(
+                              height: 3,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    widget.accentColor,
+                                    AppColors.error,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${_elapsedSeconds.toStringAsFixed(0)}s / ${_totalSeconds}s',
+                  style: AppTypography.eyebrow.copyWith(
+                    color: AppColors.border,
+                    fontSize: 9,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 28),
+
+            // Cancel button
+            GestureDetector(
+              onTap: widget.onCancel,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.border.withValues(alpha: 0.5),
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  'Cancel query',
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.textGhost,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 48),
+          ],
+        ),
       ),
     );
   }

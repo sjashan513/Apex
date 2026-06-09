@@ -69,7 +69,7 @@ class _LogoMark extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: AppColors.accentGlobal.withValues(alpha: 0.15),
-            blurRadius: 20,
+            blurRadius: 30,
             spreadRadius: 1,
           ),
         ],

@@ -27,28 +27,6 @@ abstract interface class RankingRepository {
 final class OpenAiRankingRepository implements RankingRepository {
   const OpenAiRankingRepository();
 
-  // ── Trip 1: List system prompt ─────────────────────────────────────────────
-  //
-  // Three fixes applied vs previous version:
-  //
-  // Fix 1 — Separated archetype schemas.
-  //   Each archetype now has its own clean JSON block with only its own fields.
-  //   No cross-contamination of latitude/vram/creator across archetypes.
-  //   The model can no longer confuse which fields belong to which type.
-  //
-  // Fix 2 — Strict iconIdentifier constraint.
-  //   Previous prompt allowed the model to invent values like "actor".
-  //   Now the only legal values are stated once per archetype block with
-  //   zero ambiguity. Violation produces a fallback tile — now prevented.
-  //
-  // Fix 3 — Hallucination guardrail for real people and current events.
-  //   Queries about real named people (actors, athletes, musicians) are
-  //   valid MEDIA rankings. The model must only include real, verifiable
-  //   individuals it has reliable knowledge of — never invent names.
-  //   If it cannot produce 10 real verified entries, it uses fewer items
-  //   rather than hallucinating. Year qualifiers like "2026" are ignored
-  //   for ranking purposes — the model ranks based on what it knows.
-
   static const String _listSystemPrompt = '''
 You are a ranking engine. Your only job is to return a valid JSON object.
 
@@ -75,7 +53,7 @@ Use when type = MEDIA
   "items": [
     {
       "rank": 1,
-      "title": "<name of the person or work>",
+      "title": "<short title only — max 25 characters, no subtitles, no series suffixes e.g. 'Dune' not 'Dune: Part One (2021 Film)'>",
       "description": "<2 sentence factual description>",
       "primaryColorHex": "<hex color reflecting the item aesthetic>",
       "secondaryColorHex": "<hex color reflecting the item aesthetic>",
@@ -102,7 +80,7 @@ Use when type = GEOGRAPHIC
   "items": [
     {
       "rank": 1,
-      "title": "<name of the place>",
+      "title": "<short place name only — max 25 characters, no city suffixes e.g. 'Blue Bottle Coffee' not 'Blue Bottle Coffee Cafe & Roastery'>",
       "description": "<2 sentence factual description>",
       "primaryColorHex": "<hex color reflecting the place aesthetic>",
       "secondaryColorHex": "<hex color reflecting the place aesthetic>",
@@ -129,7 +107,7 @@ Use when type = TECHNICAL
   "items": [
     {
       "rank": 1,
-      "title": "<name of the item>",
+      "title": "<short name only — max 20 characters, no brand taglines, no product category suffixes e.g. 'RTX 4070' not 'NVIDIA GeForce RTX 4070 Graphics Card'>",
       "description": "<2 sentence factual description>",
       "primaryColorHex": "<hex color reflecting the item aesthetic>",
       "secondaryColorHex": "<hex color reflecting the item aesthetic>",

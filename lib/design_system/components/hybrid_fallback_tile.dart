@@ -50,24 +50,24 @@ class HybridFallbackTile extends StatelessWidget {
     required this.primaryColorHex,
     required this.secondaryColorHex,
     this.imageUrl,
+    this.size = 36,
+    this.borderRadius = 10,
   });
 
   final String archetype;
   final String primaryColorHex;
   final String secondaryColorHex;
   final String? imageUrl;
-
-  // tile spec from Design Contract §06
-  static const double _size = 36;
-  static const double _radius = 10;
+  final double size;
+  final double borderRadius;
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(_radius),
+      borderRadius: BorderRadius.circular(borderRadius),
       child: SizedBox(
-        width: _size,
-        height: _size,
+        width: size,
+        height: size,
         child: _buildContent(),
       ),
     );
@@ -80,8 +80,8 @@ class HybridFallbackTile extends StatelessWidget {
     if (url != null && url.isNotEmpty) {
       return CachedNetworkImage(
         imageUrl: url,
-        width: _size,
-        height: _size,
+        width: size,
+        height: size,
         fit: BoxFit.cover,
         fadeInDuration: const Duration(milliseconds: 300),
         fadeOutDuration: const Duration(milliseconds: 300),

@@ -21,8 +21,8 @@ class RankingDashboard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rankingState = ref.watch(rankingNotifierProvider);
+    final archetype = ref.watch(detectedArchetypeProvider);
 
-    // If state is no longer a ranking result — go back to home
     ref.listen(rankingNotifierProvider, (_, next) {
       next.whenData((state) {
         if (state is IdleState) context.goNamed('home');
@@ -34,7 +34,7 @@ class RankingDashboard extends ConsumerWidget {
       body: rankingState.maybeWhen(
         data: (state) {
           if (state is RankingResultState) {
-            return _buildDashboard(ref, state.model);
+            return _buildDashboard(context, ref, state.model, archetype);
           }
           return const SizedBox.shrink();
         },
@@ -43,58 +43,141 @@ class RankingDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildDashboard(WidgetRef ref, RankingModel model) {
+  Widget _buildDashboard(
+    BuildContext context,
+    WidgetRef ref,
+    RankingModel model,
+    String archetype,
+  ) {
+    final accentColor = AppColors.accentForArchetype(archetype);
+    final archetypeLabel = archetype[0] + archetype.substring(1).toLowerCase();
+
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top bar
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 18,
+          // ── Top bar ────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: Color(0x0DFFFFFF), // white 5%
+                  width: 0.5,
+                ),
+              ),
             ),
             child: Row(
               children: [
-                Expanded(
-                  child: Text(
-                    model.title,
-                    style: AppTypography.dashboardTitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 16),
+                // Back button
                 GestureDetector(
                   onTap: () =>
                       ref.read(rankingNotifierProvider.notifier).reset(),
                   child: Container(
-                    width: 48,
-                    height: 48,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.close_rounded,
-                      color: AppColors.textSecondary,
-                      size: 20,
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        width: 0.5,
+                      ),
                     ),
+                    child: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: AppColors.textSecondary,
+                      size: 18,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Center — query + meta
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        model.title,
+                        style: AppTypography.cardTitle.copyWith(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          // Archetype badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: accentColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: accentColor.withValues(alpha: 0.25),
+                                width: 0.5,
+                              ),
+                            ),
+                            child: Text(
+                              archetypeLabel,
+                              style: AppTypography.eyebrow.copyWith(
+                                color: accentColor,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${model.items.length} results',
+                            style: AppTypography.eyebrow.copyWith(
+                              color: AppColors.textGhost,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Options button
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      width: 0.5,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.more_horiz_rounded,
+                    color: AppColors.textSecondary,
+                    size: 18,
                   ),
                 ),
               ],
             ),
           ),
 
-          // Ranking list
+          // ── Ranking list ───────────────────────────────────────────
           Expanded(
             child: ListView.separated(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               itemCount: model.items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, __) => const SizedBox(height: 9),
               itemBuilder: (context, index) {
                 final item = model.items[index];
-                // 40ms stagger per card — Design Contract §05
                 final delay = Duration(milliseconds: index * 40);
 
                 return switch (item) {

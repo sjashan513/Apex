@@ -1,6 +1,6 @@
 /// Architectural role: TECHNICAL archetype ranking card.
-/// Thin variant — 56dp height per Design Contract §06.
-/// Displays rank, gradient tile, item name, and spec chips (VRAM, TDP, Price).
+/// Expanded variant — matches State 3 mockup v2.
+/// Tile 48×48dp · score pill right · spec chips row.
 library;
 
 import 'package:flutter/material.dart';
@@ -29,11 +29,7 @@ class TechnicalLayoutCard extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 56,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 10,
-          ),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
@@ -44,40 +40,80 @@ class TechnicalLayoutCard extends StatelessWidget {
           ),
           child: Row(
             children: [
+              // Rank number
               SizedBox(
                 width: 24,
                 child: Text(
                   '${item.rank}',
-                  style: AppTypography.scoreForRank(item.rank),
+                  style: AppTypography.scoreForRank(item.rank).copyWith(
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(width: 10),
-              HybridFallbackTile(
-                archetype: 'TECHNICAL',
-                primaryColorHex: item.primaryColorHex,
-                secondaryColorHex: item.secondaryColorHex,
-                imageUrl: item.imageUrl,
+
+              const SizedBox(width: 12),
+
+              // Tile — 48×48dp
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: HybridFallbackTile(
+                  archetype: 'TECHNICAL',
+                  primaryColorHex: item.primaryColorHex,
+                  secondaryColorHex: item.secondaryColorHex,
+                  imageUrl: item.imageUrl,
+                  size: 48,
+                  borderRadius: 12,
+                ),
               ),
-              const SizedBox(width: 10),
+
+              const SizedBox(width: 12),
+
+              // Info — name + chips
               Expanded(
-                child: Text(
-                  item.title,
-                  style: AppTypography.cardTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      style: AppTypography.cardTitle.copyWith(
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (item.price.isNotEmpty)
+                          _SpecChip(label: item.price, isPrice: true),
+                      ],
+                    ),
+                  ],
                 ),
               ),
+
               const SizedBox(width: 8),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+
+              // Score pill
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  if (item.vram.isNotEmpty) _SpecChip(label: item.vram),
-                  if (item.vram.isNotEmpty) const SizedBox(width: 4),
-                  if (item.tdpWattage.isNotEmpty)
-                    _SpecChip(label: item.tdpWattage),
-                  if (item.tdpWattage.isNotEmpty) const SizedBox(width: 4),
-                  if (item.price.isNotEmpty)
-                    _SpecChip(label: item.price, isPrice: true),
+                  Text(
+                    item.performanceScore.toStringAsFixed(1),
+                    style: AppTypography.scoreForRank(item.rank).copyWith(
+                      fontSize: 20,
+                      height: 1,
+                    ),
+                  ),
+                  Text(
+                    'score',
+                    style: AppTypography.eyebrow.copyWith(
+                      color: AppColors.textGhost,
+                      fontSize: 9,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -91,40 +127,36 @@ class TechnicalLayoutCard extends StatelessWidget {
         1 => AppColors.rankOneBorder,
         2 => AppColors.rankTwoBorder,
         3 => AppColors.rankThreeBorder,
-        _ => AppColors.border,
+        _ => Colors.white.withValues(alpha: 0.06),
       };
 }
 
 // ── Spec chip ──────────────────────────────────────────────────────────────
 
 class _SpecChip extends StatelessWidget {
-  const _SpecChip({
-    required this.label,
-    this.isPrice = false,
-  });
-
+  const _SpecChip({required this.label, this.isPrice = false});
   final String label;
   final bool isPrice;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.surfaceRaised,
+        color: AppColors.canvas,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
           color: isPrice
-              ? AppColors.price.withValues(alpha: 0.3)
-              : AppColors.border,
+              ? AppColors.price.withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.07),
           width: 0.5,
         ),
       ),
       child: Text(
         label,
         style: AppTypography.eyebrow.copyWith(
-          color: isPrice ? AppColors.price : AppColors.textGhost,
-          fontSize: 9,
+          color: isPrice ? AppColors.price : AppColors.textSecondary,
+          fontSize: 10,
         ),
       ),
     );

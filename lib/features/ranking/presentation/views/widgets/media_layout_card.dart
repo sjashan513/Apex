@@ -1,6 +1,5 @@
 /// Architectural role: MEDIA archetype ranking card.
-/// Thin variant — 56dp. Uses Playfair Display for title per Design Contract §02.
-/// Displays rank, gradient tile, item name, creator, and rating.
+/// Expanded variant — tile 48×48dp, rating score pill right.
 library;
 
 import 'package:flutter/material.dart';
@@ -29,50 +28,59 @@ class MediaLayoutCard extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 56,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 10,
-          ),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _borderColor,
-              width: 0.5,
-            ),
+            border: Border.all(color: _borderColor, width: 0.5),
           ),
           child: Row(
             children: [
+              // Rank
               SizedBox(
                 width: 24,
                 child: Text(
                   '${item.rank}',
-                  style: AppTypography.scoreForRank(item.rank),
+                  style: AppTypography.scoreForRank(item.rank).copyWith(
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(width: 10),
-              HybridFallbackTile(
-                archetype: 'MEDIA',
-                primaryColorHex: item.primaryColorHex,
-                secondaryColorHex: item.secondaryColorHex,
-                imageUrl: item.imageUrl,
+
+              const SizedBox(width: 12),
+
+              // Tile — 48×48dp
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: HybridFallbackTile(
+                  archetype: 'MEDIA',
+                  primaryColorHex: item.primaryColorHex,
+                  secondaryColorHex: item.secondaryColorHex,
+                  imageUrl: item.imageUrl,
+                  size: 48,
+                  borderRadius: 12,
+                ),
               ),
-              const SizedBox(width: 10),
+
+              const SizedBox(width: 12),
+
+              // Info
               Expanded(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       item.title,
                       style: AppTypography.mediaHeroTitle.copyWith(
-                        fontSize: 13,
+                        fontSize: 14,
                         height: 1.3,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 3),
                     Text(
                       item.creator,
                       style: AppTypography.body.copyWith(fontSize: 11),
@@ -82,13 +90,28 @@ class MediaLayoutCard extends StatelessWidget {
                   ],
                 ),
               ),
+
               const SizedBox(width: 8),
-              Text(
-                '${item.rating.toStringAsFixed(1)}★',
-                style: AppTypography.eyebrow.copyWith(
-                  color: AppColors.accentMedia,
-                  fontSize: 10,
-                ),
+
+              // Rating score pill
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    item.rating.toStringAsFixed(1),
+                    style: AppTypography.scoreForRank(item.rank).copyWith(
+                      fontSize: 20,
+                      height: 1,
+                    ),
+                  ),
+                  Text(
+                    'score',
+                    style: AppTypography.eyebrow.copyWith(
+                      color: AppColors.textGhost,
+                      fontSize: 9,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -101,6 +124,6 @@ class MediaLayoutCard extends StatelessWidget {
         1 => AppColors.rankOneBorder,
         2 => AppColors.rankTwoBorder,
         3 => AppColors.rankThreeBorder,
-        _ => AppColors.border,
+        _ => Colors.white.withValues(alpha: 0.06),
       };
 }

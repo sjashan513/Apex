@@ -1,5 +1,5 @@
 /// Architectural role: GEOGRAPHIC archetype ranking card.
-/// Thin variant — 56dp. Displays rank, tile, name, and price index chip.
+/// Expanded variant — tile 48×48dp, price index + accessibility row.
 library;
 
 import 'package:flutter/material.dart';
@@ -28,47 +28,56 @@ class GeographicLayoutCard extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 56,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 10,
-          ),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _borderColor,
-              width: 0.5,
-            ),
+            border: Border.all(color: _borderColor, width: 0.5),
           ),
           child: Row(
             children: [
+              // Rank
               SizedBox(
                 width: 24,
                 child: Text(
                   '${item.rank}',
-                  style: AppTypography.scoreForRank(item.rank),
+                  style: AppTypography.scoreForRank(item.rank).copyWith(
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(width: 10),
-              HybridFallbackTile(
-                archetype: 'GEOGRAPHIC',
-                primaryColorHex: item.primaryColorHex,
-                secondaryColorHex: item.secondaryColorHex,
-                imageUrl: item.imageUrl,
+
+              const SizedBox(width: 12),
+
+              // Tile — 48×48dp
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: HybridFallbackTile(
+                  archetype: 'GEOGRAPHIC',
+                  primaryColorHex: item.primaryColorHex,
+                  secondaryColorHex: item.secondaryColorHex,
+                  imageUrl: item.imageUrl,
+                  size: 48,
+                  borderRadius: 12,
+                ),
               ),
-              const SizedBox(width: 10),
+
+              const SizedBox(width: 12),
+
+              // Info
               Expanded(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       item.title,
-                      style: AppTypography.cardTitle,
+                      style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 3),
                     Text(
                       item.accessibility,
                       style: AppTypography.body.copyWith(fontSize: 11),
@@ -78,27 +87,28 @@ class GeographicLayoutCard extends StatelessWidget {
                   ],
                 ),
               ),
+
               const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceRaised,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: AppColors.price.withValues(alpha: 0.3),
-                    width: 0.5,
+
+              // Price index pill
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    item.priceIndex,
+                    style: AppTypography.scoreForRank(item.rank).copyWith(
+                      fontSize: 18,
+                      height: 1,
+                    ),
                   ),
-                ),
-                child: Text(
-                  item.priceIndex,
-                  style: AppTypography.eyebrow.copyWith(
-                    color: AppColors.price,
-                    fontSize: 10,
+                  Text(
+                    'price',
+                    style: AppTypography.eyebrow.copyWith(
+                      color: AppColors.textGhost,
+                      fontSize: 9,
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -111,6 +121,6 @@ class GeographicLayoutCard extends StatelessWidget {
         1 => AppColors.rankOneBorder,
         2 => AppColors.rankTwoBorder,
         3 => AppColors.rankThreeBorder,
-        _ => AppColors.border,
+        _ => Colors.white.withValues(alpha: 0.06),
       };
 }
